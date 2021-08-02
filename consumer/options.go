@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"github.com/diegodesousas/go-rabbitmq/connection"
-
 	"github.com/streadway/amqp"
 )
 

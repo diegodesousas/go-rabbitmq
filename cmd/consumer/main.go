@@ -8,7 +8,6 @@ import (
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
 	"github.com/diegodesousas/go-rabbitmq/consumer"
-
 	"github.com/streadway/amqp"
 )
 

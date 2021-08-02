@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
-
 	"github.com/streadway/amqp"
 )
 
