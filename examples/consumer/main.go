@@ -55,7 +55,7 @@ func main() {
 		return
 	}
 
-	helloWorldConsumer, err := consumer.NewConsumer(
+	helloWorldConsumer, err := consumer.New(
 		consumer.WithConnection(conn),
 		consumer.WithQueue("hello.world"),
 		consumer.WithQtyRoutines(5),
@@ -65,7 +65,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	helloZorldConsumer, err := consumer.NewConsumer(
+	helloZorldConsumer, err := consumer.New(
 		consumer.WithConnection(conn),
 		consumer.WithQueue("hello.zorld"),
 		consumer.WithQtyRoutines(5),

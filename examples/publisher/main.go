@@ -6,6 +6,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/diegodesousas/go-rabbitmq/connection"
+	"github.com/diegodesousas/go-rabbitmq/publisher"
+
 	"github.com/streadway/amqp"
 )
 
@@ -46,16 +49,18 @@ type MessageBody struct {
 func main() {
 	log.Println("starting publisher")
 
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672")
+	conn, err := connection.Dial(connection.Config{
+		Username: "guest",
+		Password: "guest",
+		Host:     "localhost",
+		Port:     "5672",
+	})
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	channel, err := conn.Channel()
-	if err != nil {
-		return
-	}
+	pub := publisher.New(conn)
 
 	bodyMessage, err := json.Marshal(MessageBody{
 		ProcessingTime: Duration{
@@ -65,23 +70,18 @@ func main() {
 	})
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
-	err = channel.Publish(
-		"hello",
-		"hello.world",
-		false,
-		false,
-		amqp.Publishing{
+	err = pub.Publish(publisher.Message{
+		Exchange:   "hello",
+		RoutingKey: "hello.world",
+		Publishing: amqp.Publishing{
 			ContentType: "application/json",
-			Expiration:  "10000",
 			Body:        bodyMessage,
 		},
-	)
+	})
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	log.Println("message send")

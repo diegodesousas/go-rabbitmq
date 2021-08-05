@@ -28,7 +28,7 @@ func TestNewConsumer(t *testing.T) {
 
 		expectedQueueName := "test"
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue(expectedQueueName),
 			WithHandler(expectedHandler),
 			WithConnection(conn),
@@ -62,7 +62,7 @@ func TestNewConsumer(t *testing.T) {
 			"test": 1,
 		}
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue(expectedQueueName),
 			WithHandler(testHandler),
 			WithConnection(conn),
@@ -95,7 +95,7 @@ func TestNewConsumer(t *testing.T) {
 			return nil
 		}
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithHandler(testHandler),
 			WithConnection(conn),
 		)
@@ -111,7 +111,7 @@ func TestNewConsumer(t *testing.T) {
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue("test"),
 			WithConnection(conn),
 		)
@@ -123,7 +123,7 @@ func TestNewConsumer(t *testing.T) {
 	t.Run("should return error when connection is nil", func(t *testing.T) {
 		assertions := assert.New(t)
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue("test"),
 			WithHandler(func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer {
 				return nil
@@ -140,7 +140,7 @@ func TestNewConsumer(t *testing.T) {
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(true)
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithConnection(conn),
 			WithQueue("test"),
 			WithHandler(func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer {
@@ -212,7 +212,7 @@ func TestConsumer_Consume(t *testing.T) {
 			return nil
 		}
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue("test"),
 			WithHandler(testHandler),
 			WithConnection(conn),
@@ -277,7 +277,7 @@ func TestConsumer_Consume(t *testing.T) {
 			return NewErrConsumer("err: not able to process message.", false)
 		}
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue("test"),
 			WithHandler(testHandler),
 			WithConnection(conn),
@@ -314,7 +314,7 @@ func TestConsumer_Consume(t *testing.T) {
 			return nil
 		}
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue("test"),
 			WithHandler(testHandler),
 			WithConnection(conn),
@@ -350,7 +350,7 @@ func TestConsumer_Consume(t *testing.T) {
 			return nil
 		}
 
-		consumer, err := NewConsumer(
+		consumer, err := New(
 			WithQueue("test"),
 			WithHandler(testHandler),
 			WithConnection(conn),

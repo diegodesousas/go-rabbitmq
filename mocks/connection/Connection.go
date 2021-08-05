@@ -4,7 +4,6 @@ package mocks
 
 import (
 	connection "github.com/diegodesousas/go-rabbitmq/connection"
-
 	mock "github.com/stretchr/testify/mock"
 )
 

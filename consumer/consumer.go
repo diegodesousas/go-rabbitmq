@@ -22,7 +22,7 @@ type Consumer struct {
 	args        amqp.Table
 }
 
-func NewConsumer(options ...Option) (*Consumer, error) {
+func New(options ...Option) (*Consumer, error) {
 	consumer := &Consumer{
 		qtyRoutines: DefaultQtyRoutines,
 	}

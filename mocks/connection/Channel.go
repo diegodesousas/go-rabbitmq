@@ -13,6 +13,20 @@ type Channel struct {
 	mock.Mock
 }
 
+// Confirm provides a mock function with given fields: noWait
+func (_m *Channel) Confirm(noWait bool) error {
+	ret := _m.Called(noWait)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(bool) error); ok {
+		r0 = rf(noWait)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Consume provides a mock function with given fields: queue, consumer, autoAck, exclusive, noLocal, noWait, args
 func (_m *Channel) Consume(queue string, consumer string, autoAck bool, exclusive bool, noLocal bool, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error) {
 	ret := _m.Called(queue, consumer, autoAck, exclusive, noLocal, noWait, args)
@@ -34,4 +48,34 @@ func (_m *Channel) Consume(queue string, consumer string, autoAck bool, exclusiv
 	}
 
 	return r0, r1
+}
+
+// NotifyPublish provides a mock function with given fields: confirm
+func (_m *Channel) NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation {
+	ret := _m.Called(confirm)
+
+	var r0 chan amqp.Confirmation
+	if rf, ok := ret.Get(0).(func(chan amqp.Confirmation) chan amqp.Confirmation); ok {
+		r0 = rf(confirm)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan amqp.Confirmation)
+		}
+	}
+
+	return r0
+}
+
+// Publish provides a mock function with given fields: exchange, key, mandatory, immediate, msg
+func (_m *Channel) Publish(exchange string, key string, mandatory bool, immediate bool, msg amqp.Publishing) error {
+	ret := _m.Called(exchange, key, mandatory, immediate, msg)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, bool, bool, amqp.Publishing) error); ok {
+		r0 = rf(exchange, key, mandatory, immediate, msg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }

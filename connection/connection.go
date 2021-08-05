@@ -13,6 +13,9 @@ type Connection interface {
 
 type Channel interface {
 	Consume(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error)
+	Confirm(noWait bool) error
+	NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation
+	Publish(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
 }
 
 type Config struct {
