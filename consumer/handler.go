@@ -2,8 +2,15 @@ package consumer
 
 import (
 	"context"
-
-	"github.com/streadway/amqp"
+	"encoding/json"
 )
 
-type MessageHandler func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer
+type Message struct {
+	body []byte
+}
+
+func (m Message) Unmarshal(value interface{}) error {
+	return json.Unmarshal(m.body, value)
+}
+
+type MessageHandler func(ctx context.Context, message Message) *Error

@@ -1,7 +1,9 @@
 package publisher
 
 import (
+	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
 	"github.com/streadway/amqp"
@@ -10,9 +12,21 @@ import (
 var ErrDeliveryConfirmation = errors.New("amqp: delivery message not confirmed")
 
 type Message struct {
-	Exchange   string
-	RoutingKey string
-	amqp.Publishing
+	Exchange        string
+	RoutingKey      string
+	Content         interface{}
+	Headers         amqp.Table
+	ContentEncoding string
+	DeliveryMode    uint8
+	Priority        uint8
+	CorrelationId   string
+	ReplyTo         string
+	Expiration      string
+	MessageId       string
+	Timestamp       time.Time
+	Type            string
+	UserId          string
+	AppId           string
 }
 
 type Publisher struct {
@@ -26,6 +40,11 @@ func New(conn connection.Connection) Publisher {
 }
 
 func (p Publisher) Publish(message Message) error {
+	content, err := json.Marshal(message.Content)
+	if err != nil {
+		return err
+	}
+
 	channel, err := p.conn.Channel()
 	if err != nil {
 		return err
@@ -42,7 +61,22 @@ func (p Publisher) Publish(message Message) error {
 		message.RoutingKey,
 		true,
 		false,
-		message.Publishing,
+		amqp.Publishing{
+			Body:            content,
+			Headers:         message.Headers,
+			ContentType:     "application/json",
+			ContentEncoding: message.ContentEncoding,
+			DeliveryMode:    message.DeliveryMode,
+			Priority:        message.Priority,
+			CorrelationId:   message.CorrelationId,
+			ReplyTo:         message.ReplyTo,
+			Expiration:      message.Expiration,
+			MessageId:       message.MessageId,
+			Timestamp:       message.Timestamp,
+			Type:            message.Type,
+			UserId:          message.UserId,
+			AppId:           message.AppId,
+		},
 	)
 	if err != nil {
 		return err

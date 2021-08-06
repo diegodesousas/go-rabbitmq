@@ -7,7 +7,9 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var DefaultQtyRoutines = 1
+var (
+	DefaultQtyRoutines = 1
+)
 
 type Consumer struct {
 	conn        connection.Connection
@@ -83,13 +85,17 @@ func (c Consumer) Consume(ctx context.Context) error {
 func (c Consumer) dispatcher(ctx context.Context, ctrlRoutines chan bool, msg amqp.Delivery, handler MessageHandler) {
 	ctrlRoutines <- true
 
-	go func(qtyRoutines chan bool, msg amqp.Delivery, handler MessageHandler) {
+	go func(qtyRoutines chan bool, delivery amqp.Delivery, handler MessageHandler) {
 		defer func() { <-qtyRoutines }()
-		errConsumer := handler(ctx, msg)
+
+		message := Message{
+			body: delivery.Body,
+		}
+
+		errConsumer := handler(ctx, message)
 
 		if errConsumer == nil {
-			err := msg.Ack(false)
-			if err != nil {
+			if err := delivery.Ack(false); err != nil {
 				// TODO: this error must be logged
 				return
 			}
@@ -97,8 +103,7 @@ func (c Consumer) dispatcher(ctx context.Context, ctrlRoutines chan bool, msg am
 			return
 		}
 
-		err := msg.Nack(false, errConsumer.requeue)
-		if err != nil {
+		if err := delivery.Reject(false); err != nil {
 			// TODO: this error must be logged
 			return
 		}

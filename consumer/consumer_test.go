@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"reflect"
 	"sync"
@@ -22,7 +23,7 @@ func TestNewConsumer(t *testing.T) {
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
 
-		expectedHandler := func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer {
+		expectedHandler := func(ctx context.Context, message Message) *Error {
 			return nil
 		}
 
@@ -52,7 +53,7 @@ func TestNewConsumer(t *testing.T) {
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
 
-		testHandler := func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer {
+		testHandler := func(ctx context.Context, message Message) *Error {
 			return nil
 		}
 
@@ -91,7 +92,7 @@ func TestNewConsumer(t *testing.T) {
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
 
-		testHandler := func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer {
+		testHandler := func(ctx context.Context, message Message) *Error {
 			return nil
 		}
 
@@ -125,7 +126,7 @@ func TestNewConsumer(t *testing.T) {
 
 		consumer, err := New(
 			WithQueue("test"),
-			WithHandler(func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer {
+			WithHandler(func(ctx context.Context, message Message) *Error {
 				return nil
 			}),
 		)
@@ -143,7 +144,7 @@ func TestNewConsumer(t *testing.T) {
 		consumer, err := New(
 			WithConnection(conn),
 			WithQueue("test"),
-			WithHandler(func(ctx context.Context, delivery amqp.Delivery) *ErrConsumer {
+			WithHandler(func(ctx context.Context, message Message) *Error {
 				return nil
 			}),
 		)
@@ -170,6 +171,26 @@ func mockChanMessages(messages []amqp.Delivery) <-chan amqp.Delivery {
 }
 
 func TestConsumer_Consume(t *testing.T) {
+	type messageContent struct {
+		Value string `json:"value"`
+	}
+
+	assertions := assert.New(t)
+
+	m1 := messageContent{
+		"test_1",
+	}
+
+	m2 := messageContent{
+		"test_2",
+	}
+
+	m1Bytes, err := json.Marshal(m1)
+	assertions.Nil(err)
+
+	m2Bytes, err := json.Marshal(m2)
+	assertions.Nil(err)
+
 	t.Run("should consume message successfully", func(t *testing.T) {
 		assertions := assert.New(t)
 
@@ -179,10 +200,10 @@ func TestConsumer_Consume(t *testing.T) {
 		expectedMessages := []amqp.Delivery{
 			{
 				Acknowledger: acknowledger,
-				Body:         []byte("test_1"),
+				Body:         m1Bytes,
 			},
 			{
-				Body: []byte("test_2"),
+				Body: m2Bytes,
 			},
 		}
 
@@ -202,13 +223,20 @@ func TestConsumer_Consume(t *testing.T) {
 
 		mutex := sync.Mutex{}
 
-		var expectedHandlerCalls []string
-		testHandler := func(ctx context.Context, message amqp.Delivery) *ErrConsumer {
+		var expectedHandlerCalls []messageContent
+		testHandler := func(ctx context.Context, message Message) *Error {
 			mutex.Lock()
 			defer mutex.Unlock()
 
-			expectedHandlerCalls = append(expectedHandlerCalls, string(message.Body))
+			var content messageContent
+			err := message.Unmarshal(&content)
+			if err != nil {
+				return WrapErrConsumer(err)
+			}
+
+			expectedHandlerCalls = append(expectedHandlerCalls, content)
 			waitGroup.Done()
+
 			return nil
 		}
 
@@ -226,8 +254,8 @@ func TestConsumer_Consume(t *testing.T) {
 		waitGroup.Wait()
 
 		assertions.Len(expectedHandlerCalls, len(expectedMessages))
-		assertions.Contains(expectedHandlerCalls, "test_1")
-		assertions.Contains(expectedHandlerCalls, "test_2")
+		assertions.Contains(expectedHandlerCalls, m1)
+		assertions.Contains(expectedHandlerCalls, m2)
 
 		channel.AssertNumberOfCalls(t, "Consume", 1)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
@@ -239,15 +267,15 @@ func TestConsumer_Consume(t *testing.T) {
 		assertions := assert.New(t)
 
 		acknowledger := new(amqpmocks.Acknowledger)
-		acknowledger.On("Nack", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		acknowledger.On("Reject", mock.Anything, mock.Anything).Return(nil)
 
 		expectedMessages := []amqp.Delivery{
 			{
-				Body:         []byte("test_1"),
+				Body:         m1Bytes,
 				Acknowledger: acknowledger,
 			},
 			{
-				Body: []byte("test_2"),
+				Body: m2Bytes,
 			},
 		}
 
@@ -267,14 +295,21 @@ func TestConsumer_Consume(t *testing.T) {
 
 		mutex := sync.Mutex{}
 
-		var expectedHandlerCalls []string
-		testHandler := func(ctx context.Context, message amqp.Delivery) *ErrConsumer {
+		var expectedHandlerCalls []messageContent
+		testHandler := func(ctx context.Context, message Message) *Error {
 			mutex.Lock()
 			defer mutex.Unlock()
 
-			expectedHandlerCalls = append(expectedHandlerCalls, string(message.Body))
+			var content messageContent
+			err := message.Unmarshal(&content)
+			if err != nil {
+				return WrapErrConsumer(err)
+			}
+
+			expectedHandlerCalls = append(expectedHandlerCalls, content)
 			waitGroup.Done()
-			return NewErrConsumer("err: not able to process message.", false)
+
+			return NewError("err: not able to process message.", false)
 		}
 
 		consumer, err := New(
@@ -295,8 +330,8 @@ func TestConsumer_Consume(t *testing.T) {
 		conn.AssertNumberOfCalls(t, "Channel", 1)
 
 		assertions.Len(expectedHandlerCalls, len(expectedMessages))
-		assertions.Contains(expectedHandlerCalls, "test_1")
-		assertions.Contains(expectedHandlerCalls, "test_2")
+		assertions.Contains(expectedHandlerCalls, m1)
+		assertions.Contains(expectedHandlerCalls, m2)
 	})
 
 	t.Run("should return error when call channel", func(t *testing.T) {
@@ -309,8 +344,14 @@ func TestConsumer_Consume(t *testing.T) {
 		conn.On("Channel").Return(nil, expectedErr)
 
 		var expectedCalls []string
-		testHandler := func(ctx context.Context, message amqp.Delivery) *ErrConsumer {
-			expectedCalls = append(expectedCalls, string(message.Body))
+		testHandler := func(ctx context.Context, message Message) *Error {
+			var body string
+			err := message.Unmarshal(&body)
+			if err != nil {
+				return WrapErrConsumer(err)
+			}
+
+			expectedCalls = append(expectedCalls, body)
 			return nil
 		}
 
@@ -345,8 +386,14 @@ func TestConsumer_Consume(t *testing.T) {
 		conn.On("Channel").Return(channel, nil)
 
 		var expectedCalls []string
-		testHandler := func(ctx context.Context, message amqp.Delivery) *ErrConsumer {
-			expectedCalls = append(expectedCalls, string(message.Body))
+		testHandler := func(ctx context.Context, message Message) *Error {
+			var body string
+			err := message.Unmarshal(&body)
+			if err != nil {
+				return WrapErrConsumer(err)
+			}
+
+			expectedCalls = append(expectedCalls, body)
 			return nil
 		}
 

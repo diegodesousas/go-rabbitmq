@@ -8,8 +8,6 @@ import (
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
 	"github.com/diegodesousas/go-rabbitmq/publisher"
-
-	"github.com/streadway/amqp"
 )
 
 type Duration struct {
@@ -62,23 +60,17 @@ func main() {
 
 	pub := publisher.New(conn)
 
-	bodyMessage, err := json.Marshal(MessageBody{
+	content := MessageBody{
 		ProcessingTime: Duration{
 			1 * time.Second,
 		},
 		ExternalService: false,
-	})
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	err = pub.Publish(publisher.Message{
 		Exchange:   "hello",
 		RoutingKey: "hello.world",
-		Publishing: amqp.Publishing{
-			ContentType: "application/json",
-			Body:        bodyMessage,
-		},
+		Content:    content,
 	})
 	if err != nil {
 		log.Fatal(err)

@@ -1,6 +1,7 @@
 package publisher
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -30,9 +31,7 @@ func TestPublisher_Publish(t *testing.T) {
 		message := Message{
 			Exchange:   "test",
 			RoutingKey: "test",
-			Publishing: amqp.Publishing{
-				Body: []byte("test"),
-			},
+			Content:    "test",
 		}
 
 		confirmations <- amqp.Confirmation{
@@ -68,9 +67,7 @@ func TestPublisher_Publish(t *testing.T) {
 		message := Message{
 			Exchange:   "test",
 			RoutingKey: "test",
-			Publishing: amqp.Publishing{
-				Body: []byte("test"),
-			},
+			Content:    "test",
 		}
 
 		confirmations <- amqp.Confirmation{
@@ -108,9 +105,7 @@ func TestPublisher_Publish(t *testing.T) {
 		message := Message{
 			Exchange:   "test",
 			RoutingKey: "test",
-			Publishing: amqp.Publishing{
-				Body: []byte("test"),
-			},
+			Content:    "test",
 		}
 
 		err := publisher.Publish(message)
@@ -144,9 +139,7 @@ func TestPublisher_Publish(t *testing.T) {
 		message := Message{
 			Exchange:   "test",
 			RoutingKey: "test",
-			Publishing: amqp.Publishing{
-				Body: []byte("test"),
-			},
+			Content:    "test",
 		}
 
 		confirmations <- amqp.Confirmation{
@@ -185,9 +178,7 @@ func TestPublisher_Publish(t *testing.T) {
 		message := Message{
 			Exchange:   "test",
 			RoutingKey: "test",
-			Publishing: amqp.Publishing{
-				Body: []byte("test"),
-			},
+			Content:    "test",
 		}
 
 		confirmations <- amqp.Confirmation{
@@ -204,5 +195,42 @@ func TestPublisher_Publish(t *testing.T) {
 		channel.AssertNumberOfCalls(t, "Confirm", 1)
 		channel.AssertNumberOfCalls(t, "NotifyPublish", 1)
 		channel.AssertNumberOfCalls(t, "Publish", 1)
+	})
+
+	t.Run("should return error if content is no a valid json", func(t *testing.T) {
+		assertions := assert.New(t)
+
+		confirmations := make(chan amqp.Confirmation, 1)
+
+		channel := new(mocks.Channel)
+		channel.On("Confirm", mock.Anything).Return(nil)
+		channel.On("NotifyPublish", mock.Anything).Return(confirmations)
+		channel.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+		conn := new(mocks.Connection)
+		conn.On("Channel").Return(channel, nil)
+
+		publisher := New(conn)
+
+		message := Message{
+			Exchange:   "test",
+			RoutingKey: "test",
+			Content:    make(chan string),
+		}
+
+		confirmations <- amqp.Confirmation{
+			DeliveryTag: 0,
+			Ack:         false,
+		}
+
+		err := publisher.Publish(message)
+
+		assertions.NotNil(err)
+		assertions.IsType(&json.UnsupportedTypeError{}, err)
+
+		conn.AssertNumberOfCalls(t, "Channel", 0)
+		channel.AssertNumberOfCalls(t, "Confirm", 0)
+		channel.AssertNumberOfCalls(t, "NotifyPublish", 0)
+		channel.AssertNumberOfCalls(t, "Publish", 0)
 	})
 }

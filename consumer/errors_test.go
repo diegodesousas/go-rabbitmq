@@ -13,14 +13,14 @@ func TestWrapErrConsumer(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *ErrConsumer
+		want *Error
 	}{
 		{
 			name: "wrap error must requeue message",
 			args: args{
 				err: errors.New("unknown error"),
 			},
-			want: &ErrConsumer{
+			want: &Error{
 				error:   errors.New("unknown error"),
 				requeue: true,
 			},

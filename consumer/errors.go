@@ -9,15 +9,15 @@ var (
 	ErrNilHandler         = errors.New("rabbit consumer: handler is nil")
 )
 
-type ErrConsumer struct {
+type Error struct {
 	error
 	requeue bool
 }
 
-func NewErrConsumer(msg string, requeue bool) *ErrConsumer {
-	return &ErrConsumer{error: errors.New(msg), requeue: requeue}
+func NewError(msg string, requeue bool) *Error {
+	return &Error{error: errors.New(msg), requeue: requeue}
 }
 
-func WrapErrConsumer(err error) *ErrConsumer {
-	return &ErrConsumer{error: err, requeue: true}
+func WrapErrConsumer(err error) *Error {
+	return &Error{error: err, requeue: true}
 }
