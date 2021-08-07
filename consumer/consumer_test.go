@@ -20,8 +20,11 @@ func TestNewConsumer(t *testing.T) {
 	t.Run("should create consumer successfully", func(t *testing.T) {
 		assertions := assert.New(t)
 
+		channel := new(mocks.Channel)
+
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		expectedHandler := func(ctx context.Context, message Message) *Error {
 			return nil
@@ -45,13 +48,17 @@ func TestNewConsumer(t *testing.T) {
 		assertions.Equal(false, consumer.noLocal)
 		assertions.Equal(amqp.Table(nil), consumer.args)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
 	})
 
 	t.Run("should set parameters successfully", func(t *testing.T) {
 		assertions := assert.New(t)
 
+		channel := new(mocks.Channel)
+
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		testHandler := func(ctx context.Context, message Message) *Error {
 			return nil
@@ -84,13 +91,17 @@ func TestNewConsumer(t *testing.T) {
 		assertions.Equal(true, consumer.noLocal)
 		assertions.Equal(expectedTable, consumer.args)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
 	})
 
 	t.Run("should return error when queue is empty", func(t *testing.T) {
 		assertions := assert.New(t)
 
+		channel := new(mocks.Channel)
+
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
+		conn.On("Channel").Return(channel, nil)
 
 		testHandler := func(ctx context.Context, message Message) *Error {
 			return nil
@@ -104,13 +115,17 @@ func TestNewConsumer(t *testing.T) {
 		assertions.Nil(consumer)
 		assertions.Equal(err, ErrEmptyQueue)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 0)
 	})
 
 	t.Run("should return error when handler is nil", func(t *testing.T) {
 		assertions := assert.New(t)
 
+		channel := new(mocks.Channel)
+
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		consumer, err := New(
 			WithQueue("test"),
@@ -138,8 +153,11 @@ func TestNewConsumer(t *testing.T) {
 	t.Run("should return error when connection is closed", func(t *testing.T) {
 		assertions := assert.New(t)
 
+		channel := new(mocks.Channel)
+
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(true)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		consumer, err := New(
 			WithConnection(conn),
@@ -152,6 +170,7 @@ func TestNewConsumer(t *testing.T) {
 		assertions.Nil(consumer)
 		assertions.Equal(err, ErrConnectionIsClosed)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 0)
 	})
 }
 
@@ -332,43 +351,6 @@ func TestConsumer_Consume(t *testing.T) {
 		assertions.Len(expectedHandlerCalls, len(expectedMessages))
 		assertions.Contains(expectedHandlerCalls, m1)
 		assertions.Contains(expectedHandlerCalls, m2)
-	})
-
-	t.Run("should return error when call channel", func(t *testing.T) {
-		assertions := assert.New(t)
-
-		expectedErr := errors.New("error when try get channel")
-
-		conn := new(mocks.Connection)
-		conn.On("IsClosed").Return(false)
-		conn.On("Channel", mock.Anything).Return(nil, expectedErr)
-
-		var expectedCalls []string
-		testHandler := func(ctx context.Context, message Message) *Error {
-			var body string
-			err := message.Unmarshal(&body)
-			if err != nil {
-				return WrapErrConsumer(err)
-			}
-
-			expectedCalls = append(expectedCalls, body)
-			return nil
-		}
-
-		consumer, err := New(
-			WithQueue("test"),
-			WithHandler(testHandler),
-			WithConnection(conn),
-		)
-		assertions.Nil(err)
-
-		err = consumer.Consume(context.Background())
-		assertions.NotNil(err)
-		assertions.Equal(expectedErr, err)
-		assertions.Len(expectedCalls, 0)
-
-		conn.AssertNumberOfCalls(t, "IsClosed", 1)
-		conn.AssertNumberOfCalls(t, "Channel", 1)
 	})
 
 	t.Run("should return error when call consume method of channel", func(t *testing.T) {
