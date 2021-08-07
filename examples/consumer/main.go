@@ -46,7 +46,7 @@ func HelloHandler(ctx context.Context, message consumer.Message) *consumer.Error
 }
 
 func main() {
-	log.Println("starting consumer")
+	log.Println("starting application")
 
 	conn, err := connection.Dial(connection.Config{
 		Username: "guest",
@@ -108,11 +108,13 @@ func main() {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFunc()
 
+	log.Printf("Shutting down consummers")
 	shutdown(ctx)
 
+	log.Printf("closing rabbitmq connection")
 	if err := conn.Close(); err != nil {
 		log.Print("close connection error: ", err)
 	}
 
-	log.Printf("consumer finished")
+	log.Println("application finished")
 }

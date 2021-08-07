@@ -14,7 +14,12 @@ var (
 	DefaultQtyRoutines = 1
 )
 
-type Consumer struct {
+type Consumer interface {
+	Consume(ctx context.Context) error
+	Shutdown(ctx context.Context) error
+}
+
+type DefaultConsumer struct {
 	conn         connection.Connection
 	channel      connection.Channel
 	handler      MessageHandler
@@ -30,8 +35,8 @@ type Consumer struct {
 	ctrlShutdown sync.WaitGroup
 }
 
-func New(options ...Option) (*Consumer, error) {
-	consumer := &Consumer{
+func New(options ...Option) (*DefaultConsumer, error) {
+	consumer := &DefaultConsumer{
 		qtyRoutines: DefaultQtyRoutines,
 	}
 
@@ -67,7 +72,7 @@ func New(options ...Option) (*Consumer, error) {
 	return consumer, nil
 }
 
-func (c *Consumer) Consume(ctx context.Context) error {
+func (c *DefaultConsumer) Consume(ctx context.Context) error {
 	msgs, err := c.channel.Consume(
 		c.queue,
 		c.name,
@@ -93,7 +98,7 @@ func (c *Consumer) Consume(ctx context.Context) error {
 	return nil
 }
 
-func (c *Consumer) dispatcher(ctx context.Context, msg amqp.Delivery, handler MessageHandler) {
+func (c *DefaultConsumer) dispatcher(ctx context.Context, msg amqp.Delivery, handler MessageHandler) {
 	c.ctrlRoutines <- true
 
 	go func(delivery amqp.Delivery, handler MessageHandler) {
@@ -123,7 +128,7 @@ func (c *Consumer) dispatcher(ctx context.Context, msg amqp.Delivery, handler Me
 	}(msg, handler)
 }
 
-func (c *Consumer) Shutdown(ctx context.Context) error {
+func (c *DefaultConsumer) Shutdown(ctx context.Context) error {
 	err := c.channel.Cancel(c.name, false)
 	if err != nil && err != amqp.ErrClosed {
 		// TODO: this error must be logged

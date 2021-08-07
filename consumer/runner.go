@@ -6,7 +6,7 @@ import (
 
 type Shutdown func(ctx context.Context)
 
-var shutdown = func(consumers []*Consumer) Shutdown {
+var shutdown = func(consumers []Consumer) Shutdown {
 	return func(ctx context.Context) {
 		for _, c := range consumers {
 			err := c.Shutdown(ctx)
@@ -17,7 +17,7 @@ var shutdown = func(consumers []*Consumer) Shutdown {
 	}
 }
 
-func Run(ctx context.Context, consumers ...*Consumer) (Shutdown, error) {
+func Run(ctx context.Context, consumers ...Consumer) (Shutdown, error) {
 	for _, c := range consumers {
 		err := c.Consume(ctx)
 		if err != nil {
