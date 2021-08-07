@@ -62,19 +62,21 @@ func main() {
 
 	content := MessageBody{
 		ProcessingTime: Duration{
-			1 * time.Second,
+			2 * time.Second,
 		},
 		ExternalService: false,
 	}
 
-	err = pub.Publish(publisher.Message{
-		Exchange:   "hello",
-		RoutingKey: "hello.world",
-		Content:    content,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	for i := 0; i < 100; i++ {
+		err = pub.Publish(publisher.Message{
+			Exchange:   "hello",
+			RoutingKey: "hello.world",
+			Content:    content,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	log.Println("message send")
+		log.Println("message send")
+	}
 }
