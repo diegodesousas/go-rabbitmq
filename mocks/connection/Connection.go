@@ -4,6 +4,7 @@ package mocks
 
 import (
 	connection "github.com/diegodesousas/go-rabbitmq/connection"
+	amqp "github.com/streadway/amqp"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -12,13 +13,13 @@ type Connection struct {
 	mock.Mock
 }
 
-// Channel provides a mock function with given fields:
-func (_m *Connection) Channel() (connection.Channel, error) {
-	ret := _m.Called()
+// Channel provides a mock function with given fields: prefetch
+func (_m *Connection) Channel(prefetch int) (connection.Channel, error) {
+	ret := _m.Called(prefetch)
 
 	var r0 connection.Channel
-	if rf, ok := ret.Get(0).(func() connection.Channel); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(int) connection.Channel); ok {
+		r0 = rf(prefetch)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(connection.Channel)
@@ -26,13 +27,27 @@ func (_m *Connection) Channel() (connection.Channel, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(prefetch)
 	} else {
 		r1 = ret.Error(1)
 	}
 
 	return r0, r1
+}
+
+// Close provides a mock function with given fields:
+func (_m *Connection) Close() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // IsClosed provides a mock function with given fields:
@@ -44,6 +59,22 @@ func (_m *Connection) IsClosed() bool {
 		r0 = rf()
 	} else {
 		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// NotifyClose provides a mock function with given fields: receiver
+func (_m *Connection) NotifyClose(receiver chan *amqp.Error) chan *amqp.Error {
+	ret := _m.Called(receiver)
+
+	var r0 chan *amqp.Error
+	if rf, ok := ret.Get(0).(func(chan *amqp.Error) chan *amqp.Error); ok {
+		r0 = rf(receiver)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *amqp.Error)
+		}
 	}
 
 	return r0

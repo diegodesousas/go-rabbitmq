@@ -216,7 +216,7 @@ func TestConsumer_Consume(t *testing.T) {
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		waitGroup := sync.WaitGroup{}
 		waitGroup.Add(len(expectedMessages))
@@ -288,7 +288,7 @@ func TestConsumer_Consume(t *testing.T) {
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		waitGroup := sync.WaitGroup{}
 		waitGroup.Add(len(expectedMessages))
@@ -341,7 +341,7 @@ func TestConsumer_Consume(t *testing.T) {
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
-		conn.On("Channel").Return(nil, expectedErr)
+		conn.On("Channel", mock.Anything).Return(nil, expectedErr)
 
 		var expectedCalls []string
 		testHandler := func(ctx context.Context, message Message) *Error {
@@ -383,7 +383,7 @@ func TestConsumer_Consume(t *testing.T) {
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		var expectedCalls []string
 		testHandler := func(ctx context.Context, message Message) *Error {

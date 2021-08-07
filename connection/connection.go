@@ -8,7 +8,9 @@ import (
 
 type Connection interface {
 	IsClosed() bool
-	Channel() (Channel, error)
+	Channel(prefetch int) (Channel, error)
+	Close() error
+	NotifyClose(receiver chan *amqp.Error) chan *amqp.Error
 }
 
 type Channel interface {
@@ -16,6 +18,7 @@ type Channel interface {
 	Confirm(noWait bool) error
 	NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation
 	Publish(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
+	Cancel(consumer string, noWait bool) error
 }
 
 type Config struct {
@@ -34,9 +37,13 @@ type DefaultConnection struct {
 	*amqp.Connection
 }
 
-func (d DefaultConnection) Channel() (Channel, error) {
+func (d DefaultConnection) Channel(prefetch int) (Channel, error) {
 	channel, err := d.Connection.Channel()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := channel.Qos(prefetch, 0, false); err != nil {
 		return nil, err
 	}
 

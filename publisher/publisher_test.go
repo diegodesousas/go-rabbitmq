@@ -24,7 +24,7 @@ func TestPublisher_Publish(t *testing.T) {
 		channel.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		conn := new(mocks.Connection)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		publisher := New(conn)
 
@@ -60,7 +60,7 @@ func TestPublisher_Publish(t *testing.T) {
 		channel.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		conn := new(mocks.Connection)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		publisher := New(conn)
 
@@ -98,7 +98,7 @@ func TestPublisher_Publish(t *testing.T) {
 
 		channelErr := errors.New("amqp: error channel")
 		conn := new(mocks.Connection)
-		conn.On("Channel").Return(nil, channelErr)
+		conn.On("Channel", mock.Anything).Return(nil, channelErr)
 
 		publisher := New(conn)
 
@@ -132,7 +132,7 @@ func TestPublisher_Publish(t *testing.T) {
 		channel.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		conn := new(mocks.Connection)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		publisher := New(conn)
 
@@ -171,7 +171,7 @@ func TestPublisher_Publish(t *testing.T) {
 		channel.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(channelErr)
 
 		conn := new(mocks.Connection)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		publisher := New(conn)
 
@@ -208,7 +208,7 @@ func TestPublisher_Publish(t *testing.T) {
 		channel.On("Publish", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		conn := new(mocks.Connection)
-		conn.On("Channel").Return(channel, nil)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		publisher := New(conn)
 

@@ -13,6 +13,20 @@ type Channel struct {
 	mock.Mock
 }
 
+// Cancel provides a mock function with given fields: consumer, noWait
+func (_m *Channel) Cancel(consumer string, noWait bool) error {
+	ret := _m.Called(consumer, noWait)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, bool) error); ok {
+		r0 = rf(consumer, noWait)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Confirm provides a mock function with given fields: noWait
 func (_m *Channel) Confirm(noWait bool) error {
 	ret := _m.Called(noWait)

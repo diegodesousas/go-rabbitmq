@@ -3,7 +3,12 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
+
+	"github.com/streadway/amqp"
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
 	"github.com/diegodesousas/go-rabbitmq/consumer"
@@ -57,7 +62,7 @@ func main() {
 	helloWorldConsumer, err := consumer.New(
 		consumer.WithConnection(conn),
 		consumer.WithQueue("hello.world"),
-		consumer.WithQtyRoutines(5),
+		consumer.WithQtyRoutines(10),
 		consumer.WithHandler(HelloHandler),
 	)
 	if err != nil {
@@ -71,7 +76,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	forever := make(chan bool)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
+	notifyErrors := conn.NotifyClose(make(chan *amqp.Error))
+
+	go func() {
+		for err := range notifyErrors {
+			log.Print(err, conn.IsClosed())
+			interrupt <- syscall.SIGTERM
+		}
+	}()
+
 	log.Printf("[*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+	<-interrupt
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFunc()
+
+	err = helloWorldConsumer.Shutdown(ctx)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	log.Printf("consumer finished")
 }
