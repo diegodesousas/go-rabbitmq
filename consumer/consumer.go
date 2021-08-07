@@ -3,7 +3,6 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
@@ -109,7 +108,6 @@ func (c *Consumer) dispatcher(ctx context.Context, msg amqp.Delivery, handler Me
 
 		if errConsumer == nil {
 			if err := delivery.Ack(false); err != nil {
-				log.Print(err)
 				// TODO: this error must be logged
 				return
 			}
@@ -118,7 +116,6 @@ func (c *Consumer) dispatcher(ctx context.Context, msg amqp.Delivery, handler Me
 		}
 
 		if err := delivery.Reject(false); err != nil {
-			log.Print(err)
 			// TODO: this error must be logged
 			return
 		}
