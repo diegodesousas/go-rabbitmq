@@ -108,7 +108,7 @@ func main() {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFunc()
 
-	log.Printf("Shutting down consummers")
+	log.Printf("shutting down consummers")
 	shutdown(ctx)
 
 	log.Printf("closing rabbitmq connection")
