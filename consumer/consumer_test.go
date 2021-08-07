@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	mocks "github.com/diegodesousas/go-rabbitmq/mocks/connection"
 	amqpmocks "github.com/diegodesousas/go-rabbitmq/mocks/github.com/streadway/amqp"
@@ -171,6 +172,29 @@ func TestNewConsumer(t *testing.T) {
 		assertions.Equal(err, ErrConnectionIsClosed)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
 		conn.AssertNumberOfCalls(t, "Channel", 0)
+	})
+
+	t.Run("should return error when try get channel", func(t *testing.T) {
+		assertions := assert.New(t)
+
+		expectedErr := errors.New("error when trying to get channel")
+
+		conn := new(mocks.Connection)
+		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(nil, expectedErr)
+
+		consumer, err := New(
+			WithConnection(conn),
+			WithQueue("test"),
+			WithHandler(func(ctx context.Context, message Message) *Error {
+				return nil
+			}),
+		)
+
+		assertions.Nil(consumer)
+		assertions.Equal(err, expectedErr)
+		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
 	})
 }
 
@@ -394,5 +418,150 @@ func TestConsumer_Consume(t *testing.T) {
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
 		conn.AssertNumberOfCalls(t, "Channel", 1)
 		channel.AssertNumberOfCalls(t, "Consume", 1)
+	})
+}
+
+func TestConsumer_Shutdown(t *testing.T) {
+	t.Run("should shutdown consumer successfully", func(t *testing.T) {
+		assertions := assert.New(t)
+
+		channel := new(mocks.Channel)
+		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
+		channel.On("Close").Return(nil)
+
+		conn := new(mocks.Connection)
+		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
+
+		expectedHandler := func(ctx context.Context, message Message) *Error {
+			return nil
+		}
+
+		expectedQueueName := "test"
+
+		consumer, err := New(
+			WithQueue(expectedQueueName),
+			WithHandler(expectedHandler),
+			WithConnection(conn),
+		)
+		assertions.Nil(err)
+
+		err = consumer.Shutdown(context.Background())
+		assertions.Nil(err)
+
+		channel.AssertNumberOfCalls(t, "Cancel", 1)
+		channel.AssertNumberOfCalls(t, "Close", 1)
+
+		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
+	})
+
+	t.Run("should shutdown consumer successfully with connection error", func(t *testing.T) {
+		assertions := assert.New(t)
+
+		channel := new(mocks.Channel)
+		channel.On("Cancel", mock.Anything, mock.Anything).Return(amqp.ErrClosed)
+		channel.On("Close").Return(nil)
+
+		conn := new(mocks.Connection)
+		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
+
+		expectedHandler := func(ctx context.Context, message Message) *Error {
+			return nil
+		}
+
+		expectedQueueName := "test"
+
+		consumer, err := New(
+			WithQueue(expectedQueueName),
+			WithHandler(expectedHandler),
+			WithConnection(conn),
+		)
+		assertions.Nil(err)
+
+		err = consumer.Shutdown(context.Background())
+		assertions.Nil(err)
+
+		channel.AssertNumberOfCalls(t, "Cancel", 1)
+		channel.AssertNumberOfCalls(t, "Close", 1)
+
+		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
+	})
+
+	t.Run("should shutdown consumer successfully with any error", func(t *testing.T) {
+		assertions := assert.New(t)
+
+		channel := new(mocks.Channel)
+		channel.On("Cancel", mock.Anything, mock.Anything).Return(errors.New("any error"))
+		channel.On("Close").Return(nil)
+
+		conn := new(mocks.Connection)
+		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
+
+		expectedHandler := func(ctx context.Context, message Message) *Error {
+			return nil
+		}
+
+		expectedQueueName := "test"
+
+		consumer, err := New(
+			WithQueue(expectedQueueName),
+			WithHandler(expectedHandler),
+			WithConnection(conn),
+		)
+		assertions.Nil(err)
+
+		err = consumer.Shutdown(context.Background())
+		assertions.Nil(err)
+
+		channel.AssertNumberOfCalls(t, "Cancel", 1)
+		channel.AssertNumberOfCalls(t, "Close", 1)
+
+		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
+	})
+
+	t.Run("should force shutdown with timeout", func(t *testing.T) {
+		assertions := assert.New(t)
+
+		channel := new(mocks.Channel)
+		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
+		channel.On("Close").Return(nil)
+
+		conn := new(mocks.Connection)
+		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
+
+		expectedHandler := func(ctx context.Context, message Message) *Error {
+			return nil
+		}
+
+		expectedQueueName := "test"
+
+		consumer, err := New(
+			WithQueue(expectedQueueName),
+			WithHandler(expectedHandler),
+			WithConnection(conn),
+		)
+		assertions.Nil(err)
+
+		ctx := context.Background()
+
+		ctx, cancelFunc := context.WithTimeout(ctx, 1*time.Nanosecond)
+		defer cancelFunc()
+
+		err = consumer.Shutdown(ctx)
+
+		assertions.NotNil(err)
+		assertions.Equal(context.DeadlineExceeded, err)
+
+		channel.AssertNumberOfCalls(t, "Cancel", 1)
+		channel.AssertNumberOfCalls(t, "Close", 1)
+
+		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
 	})
 }
