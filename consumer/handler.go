@@ -6,7 +6,9 @@ import (
 )
 
 type Message struct {
-	body []byte
+	body       []byte
+	Exchange   string
+	RoutingKey string
 }
 
 func (m Message) Unmarshal(value interface{}) error {

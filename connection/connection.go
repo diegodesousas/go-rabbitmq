@@ -19,6 +19,7 @@ type Channel interface {
 	NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation
 	Publish(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
 	Cancel(consumer string, noWait bool) error
+	Close() error
 }
 
 type Config struct {

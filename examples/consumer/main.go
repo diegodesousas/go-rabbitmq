@@ -39,8 +39,8 @@ func HelloHandler(ctx context.Context, message consumer.Message) *consumer.Error
 	}
 
 	log.Printf("Received a message")
-	time.Sleep(bodyMessage.ProcessingTime.Duration)
-	log.Printf("Finish processing: %v;", bodyMessage)
+	time.Sleep(1 * time.Second)
+	log.Printf("Finish processing: %v; Exchange: %s; RoutingKey: %s", bodyMessage, message.Exchange, message.RoutingKey)
 
 	return nil
 }
@@ -58,45 +58,61 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+	log.Println("connected to rabbitmq")
 
 	helloWorldConsumer, err := consumer.New(
 		consumer.WithConnection(conn),
 		consumer.WithQueue("hello.world"),
-		consumer.WithQtyRoutines(10),
+		consumer.WithQtyRoutines(2),
 		consumer.WithHandler(HelloHandler),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("hello.world failed bootstrap: ", err)
+	}
+
+	helloZorldConsumer, err := consumer.New(
+		consumer.WithConnection(conn),
+		consumer.WithQueue("hello.zorld"),
+		consumer.WithQtyRoutines(4),
+		consumer.WithHandler(HelloHandler),
+	)
+	if err != nil {
+		log.Fatal("hello.zorld failed bootstrap: ", err)
 	}
 
 	ctx := context.Background()
 
-	err = helloWorldConsumer.Consume(ctx)
+	shutdown, err := consumer.Run(
+		ctx,
+		helloWorldConsumer,
+		helloZorldConsumer,
+	)
 	if err != nil {
-		log.Fatal(err)
+		shutdown(ctx)
+		log.Fatal("run consumers failed: ", err)
 	}
+
+	log.Printf("waiting for messages. To exit press CTRL+C")
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	notifyErrors := conn.NotifyClose(make(chan *amqp.Error))
+	closeConnListener := conn.NotifyClose(make(chan *amqp.Error))
 
 	go func() {
-		for err := range notifyErrors {
-			log.Print(err, conn.IsClosed())
-			interrupt <- syscall.SIGTERM
-		}
+		<-closeConnListener
+		interrupt <- syscall.SIGTERM
 	}()
 
-	log.Printf("[*] Waiting for messages. To exit press CTRL+C")
 	<-interrupt
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFunc()
 
-	err = helloWorldConsumer.Shutdown(ctx)
-	if err != nil {
-		log.Print(err)
-		return
+	shutdown(ctx)
+
+	if err := conn.Close(); err != nil {
+		log.Print("close connection error: ", err)
 	}
+
 	log.Printf("consumer finished")
 }

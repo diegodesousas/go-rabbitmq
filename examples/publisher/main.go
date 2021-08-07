@@ -67,10 +67,21 @@ func main() {
 		ExternalService: false,
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 500; i++ {
 		err = pub.Publish(publisher.Message{
 			Exchange:   "hello",
 			RoutingKey: "hello.world",
+			Content:    content,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("message send")
+
+		err = pub.Publish(publisher.Message{
+			Exchange:   "hello",
+			RoutingKey: "hello.zorld",
 			Content:    content,
 		})
 		if err != nil {

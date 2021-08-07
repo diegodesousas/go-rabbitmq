@@ -55,20 +55,19 @@ func New(options ...Option) (*Consumer, error) {
 		return nil, ErrEmptyQueue
 	}
 
-	consumer.name = fmt.Sprintf("%s:%s", "go-rabbitmq", uuid.New())
+	consumer.name = fmt.Sprintf("%s:%s:%s", "go-rabbitmq", consumer.queue, uuid.New())
 	consumer.ctrlRoutines = make(chan bool, consumer.qtyRoutines)
+
+	var err error
+	consumer.channel, err = consumer.conn.Channel(consumer.qtyRoutines)
+	if err != nil {
+		return nil, err
+	}
 
 	return consumer, nil
 }
 
 func (c *Consumer) Consume(ctx context.Context) error {
-	var err error
-
-	c.channel, err = c.conn.Channel(c.qtyRoutines)
-	if err != nil {
-		return err
-	}
-
 	msgs, err := c.channel.Consume(
 		c.queue,
 		c.name,
@@ -101,7 +100,9 @@ func (c *Consumer) dispatcher(ctx context.Context, msg amqp.Delivery, handler Me
 		defer func() { <-c.ctrlRoutines }()
 
 		message := Message{
-			body: delivery.Body,
+			body:       delivery.Body,
+			Exchange:   delivery.Exchange,
+			RoutingKey: delivery.RoutingKey,
 		}
 
 		errConsumer := handler(ctx, message)
@@ -127,6 +128,8 @@ func (c *Consumer) Shutdown(ctx context.Context) error {
 	if err != nil && err != amqp.ErrClosed {
 		return err
 	}
+
+	defer c.channel.Close() // TODO: this error must be logged
 
 	c.ctrlShutdown.Wait()
 
