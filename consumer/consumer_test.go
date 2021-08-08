@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -198,19 +197,12 @@ func TestNewConsumer(t *testing.T) {
 	})
 }
 
-func mockChanMessages(messages []amqp.Delivery) <-chan amqp.Delivery {
-	// unidirectionalChan multi bidirectional chan to unidirectional chan
-	bidirectionalChanMessages := make(chan amqp.Delivery, len(messages))
-	unidirectionalChanMessages := make(<-chan amqp.Delivery, len(messages))
-
-	bidirectionalChan := reflect.MakeChan(reflect.TypeOf(bidirectionalChanMessages), len(messages))
-
+func mockUnidirectionalChanDelivery(deliveries chan amqp.Delivery, messages []amqp.Delivery) <-chan amqp.Delivery {
 	for _, message := range messages {
-		bidirectionalChan.Send(reflect.ValueOf(message))
+		deliveries <- message
 	}
 
-	unidirectionalChan := bidirectionalChan.Convert(reflect.TypeOf(unidirectionalChanMessages))
-	return unidirectionalChan.Interface().(<-chan amqp.Delivery)
+	return deliveries
 }
 
 func TestConsumer_Consume(t *testing.T) {
@@ -250,7 +242,7 @@ func TestConsumer_Consume(t *testing.T) {
 			},
 		}
 
-		messages := mockChanMessages(expectedMessages)
+		messages := mockUnidirectionalChanDelivery(make(chan amqp.Delivery, len(expectedMessages)), expectedMessages)
 
 		channel := new(mocks.Channel)
 		channel.
@@ -322,7 +314,7 @@ func TestConsumer_Consume(t *testing.T) {
 			},
 		}
 
-		messages := mockChanMessages(expectedMessages)
+		messages := mockUnidirectionalChanDelivery(make(chan amqp.Delivery, len(expectedMessages)), expectedMessages)
 
 		channel := new(mocks.Channel)
 		channel.
@@ -527,15 +519,26 @@ func TestConsumer_Shutdown(t *testing.T) {
 	t.Run("should force shutdown with timeout", func(t *testing.T) {
 		assertions := assert.New(t)
 
+		messages := make(chan amqp.Delivery, 2)
+
+		deliveryList := []amqp.Delivery{
+			{Body: []byte("{}")},
+			{Body: []byte("{}")},
+		}
+
+		deliveries := mockUnidirectionalChanDelivery(messages, deliveryList)
+
 		channel := new(mocks.Channel)
 		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
 		channel.On("Close").Return(nil)
+		channel.On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(deliveries, nil)
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
 		conn.On("Channel", mock.Anything).Return(channel, nil)
 
 		expectedHandler := func(ctx context.Context, message Message) *Error {
+			time.Sleep(2 * time.Second)
 			return nil
 		}
 
@@ -545,10 +548,16 @@ func TestConsumer_Shutdown(t *testing.T) {
 			WithQueue(expectedQueueName),
 			WithHandler(expectedHandler),
 			WithConnection(conn),
+			WithQtyRoutines(len(deliveryList)),
 		)
 		assertions.Nil(err)
 
 		ctx := context.Background()
+
+		err = consumer.Consume(ctx)
+		assertions.Nil(err)
+
+		close(messages)
 
 		ctx, cancelFunc := context.WithTimeout(ctx, 1*time.Nanosecond)
 		defer cancelFunc()
