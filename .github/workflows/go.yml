@@ -27,5 +27,5 @@ jobs:
     - name: Upload code coverage
       uses: codecov/codecov-action@v1
       with:
-        files: ./tests.xml
+        files: ./cover.out
         token: ${{ secrets.CODECOV_TOKEN }}
