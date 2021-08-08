@@ -242,12 +242,14 @@ func TestConsumer_Consume(t *testing.T) {
 			},
 		}
 
-		messages := mockUnidirectionalChanDelivery(make(chan amqp.Delivery, len(expectedMessages)), expectedMessages)
+		deliveries := make(chan amqp.Delivery, len(expectedMessages))
+
+		messages := mockUnidirectionalChanDelivery(deliveries, expectedMessages)
 
 		channel := new(mocks.Channel)
-		channel.
-			On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-			Return(messages, nil)
+		channel.On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(messages, nil)
+		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
+		channel.On("Close").Return(nil)
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
@@ -262,6 +264,7 @@ func TestConsumer_Consume(t *testing.T) {
 		testHandler := func(ctx context.Context, message Message) *Error {
 			mutex.Lock()
 			defer mutex.Unlock()
+			defer waitGroup.Done()
 
 			var content messageContent
 			err := message.Unmarshal(&content)
@@ -270,7 +273,6 @@ func TestConsumer_Consume(t *testing.T) {
 			}
 
 			expectedHandlerCalls = append(expectedHandlerCalls, content)
-			waitGroup.Done()
 
 			return nil
 		}
@@ -283,10 +285,16 @@ func TestConsumer_Consume(t *testing.T) {
 		)
 		assertions.Nil(err)
 
-		err = consumer.Consume(context.Background())
+		ctx := context.Background()
+
+		err = consumer.Consume(ctx)
 		assertions.Nil(err)
 
+		close(deliveries)
 		waitGroup.Wait()
+
+		err = consumer.Shutdown(ctx)
+		assertions.Nil(err)
 
 		assertions.Len(expectedHandlerCalls, len(expectedMessages))
 		assertions.Contains(expectedHandlerCalls, m1)
@@ -314,12 +322,14 @@ func TestConsumer_Consume(t *testing.T) {
 			},
 		}
 
-		messages := mockUnidirectionalChanDelivery(make(chan amqp.Delivery, len(expectedMessages)), expectedMessages)
+		deliveries := make(chan amqp.Delivery, len(expectedMessages))
+
+		messages := mockUnidirectionalChanDelivery(deliveries, expectedMessages)
 
 		channel := new(mocks.Channel)
-		channel.
-			On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-			Return(messages, nil)
+		channel.On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(messages, nil)
+		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
+		channel.On("Close").Return(nil)
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
@@ -334,6 +344,7 @@ func TestConsumer_Consume(t *testing.T) {
 		testHandler := func(ctx context.Context, message Message) *Error {
 			mutex.Lock()
 			defer mutex.Unlock()
+			defer waitGroup.Done()
 
 			var content messageContent
 			err := message.Unmarshal(&content)
@@ -342,7 +353,6 @@ func TestConsumer_Consume(t *testing.T) {
 			}
 
 			expectedHandlerCalls = append(expectedHandlerCalls, content)
-			waitGroup.Done()
 
 			return NewError("err: not able to process message.", false)
 		}
@@ -355,14 +365,21 @@ func TestConsumer_Consume(t *testing.T) {
 		)
 		assertions.Nil(err)
 
-		err = consumer.Consume(context.Background())
+		ctx := context.Background()
+
+		err = consumer.Consume(ctx)
 		assertions.Nil(err)
 
+		close(deliveries)
 		waitGroup.Wait()
+
+		err = consumer.Shutdown(ctx)
+		assertions.Nil(err)
 
 		channel.AssertNumberOfCalls(t, "Consume", 1)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
 		conn.AssertNumberOfCalls(t, "Channel", 1)
+		acknowledger.AssertNumberOfCalls(t, "Reject", 1)
 
 		assertions.Len(expectedHandlerCalls, len(expectedMessages))
 		assertions.Contains(expectedHandlerCalls, m1)
