@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: go mod download
 
-    - name: Test
+    - name: Tests
       run: ./gotestsum --format=pkgname --junitfile tests.xml -- -race -covermode=atomic -coverprofile cover.out ./...
 
     - name: Upload code coverage
