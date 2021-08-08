@@ -23,3 +23,9 @@ jobs:
 
     - name: Test
       run: ./gotestsum --format=pkgname --junitfile tests.xml -- -race -covermode=atomic -coverprofile cover.out ./...
+
+    - name: Upload code coverage
+      uses: codecov/codecov-action@v1
+      with:
+        files: ./tests.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
