@@ -31,8 +31,8 @@ type DefaultConsumer struct {
 	noLocal      bool
 	noWait       bool
 	args         amqp.Table
-	ctrlRoutines chan bool
-	ctrlShutdown sync.WaitGroup
+	routinesGate chan struct{}
+	messageFlow  sync.WaitGroup
 }
 
 func New(options ...Option) (*DefaultConsumer, error) {
@@ -61,7 +61,7 @@ func New(options ...Option) (*DefaultConsumer, error) {
 	}
 
 	consumer.name = fmt.Sprintf("%s:%s:%s", "go-rabbitmq", consumer.queue, uuid.New())
-	consumer.ctrlRoutines = make(chan bool, consumer.qtyRoutines)
+	consumer.routinesGate = make(chan struct{}, consumer.qtyRoutines)
 
 	var err error
 	consumer.channel, err = consumer.conn.Channel(consumer.qtyRoutines)
@@ -86,23 +86,23 @@ func (c *DefaultConsumer) Consume(ctx context.Context) error {
 		return err
 	}
 
-	c.ctrlShutdown.Add(1)
+	c.messageFlow.Add(1)
 	go func() {
 		for msg := range msgs {
 			c.dispatcher(ctx, msg, c.handler)
 		}
 
-		c.ctrlShutdown.Done()
+		c.messageFlow.Done()
 	}()
 
 	return nil
 }
 
-func (c *DefaultConsumer) dispatcher(ctx context.Context, msg amqp.Delivery, handler MessageHandler) {
-	c.ctrlRoutines <- true
+func (c *DefaultConsumer) dispatcher(ctx context.Context, delivery amqp.Delivery, handler MessageHandler) {
+	c.routinesGate <- struct{}{}
 
-	go func(delivery amqp.Delivery, handler MessageHandler) {
-		defer func() { <-c.ctrlRoutines }()
+	go func() {
+		defer func() { <-c.routinesGate }()
 
 		message := Message{
 			body:       delivery.Body,
@@ -125,7 +125,7 @@ func (c *DefaultConsumer) dispatcher(ctx context.Context, msg amqp.Delivery, han
 			// TODO: this error must be logged
 			return
 		}
-	}(msg, handler)
+	}()
 }
 
 func (c *DefaultConsumer) Shutdown(ctx context.Context) error {
@@ -136,13 +136,13 @@ func (c *DefaultConsumer) Shutdown(ctx context.Context) error {
 
 	defer c.channel.Close() // TODO: this error must be logged
 
-	c.ctrlShutdown.Wait()
+	c.messageFlow.Wait()
 
 	done := make(chan struct{}, 1)
 
 	go func() {
 		for {
-			if len(c.ctrlRoutines) == 0 {
+			if len(c.routinesGate) == 0 {
 				done <- struct{}{}
 			}
 		}
