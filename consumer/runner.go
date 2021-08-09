@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"context"
+	"log"
 )
 
 type Shutdown func(ctx context.Context)
@@ -11,7 +12,7 @@ var shutdown = func(consumers []Consumer) Shutdown {
 		for _, c := range consumers {
 			err := c.Shutdown(ctx)
 			if err != nil {
-				// TODO: this error must logged
+				log.Print(err) // TODO: this error must logged
 			}
 		}
 	}

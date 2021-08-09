@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
@@ -131,7 +132,7 @@ func (c *DefaultConsumer) dispatcher(ctx context.Context, delivery amqp.Delivery
 func (c *DefaultConsumer) Shutdown(ctx context.Context) error {
 	err := c.channel.Cancel(c.name, false)
 	if err != nil && err != amqp.ErrClosed {
-		// TODO: this error must be logged
+		log.Print(err) // TODO: this error must be logged
 	}
 
 	defer c.channel.Close() // TODO: this error must be logged
