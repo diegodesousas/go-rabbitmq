@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	mocks "github.com/diegodesousas/go-rabbitmq/mocks/connection"
+	"github.com/diegodesousas/go-rabbitmq/mocks/connection"
 	"github.com/streadway/amqp"
 	"github.com/stretchr/testify/assert"
 )

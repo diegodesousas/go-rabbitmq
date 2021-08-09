@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/diegodesousas/go-rabbitmq/consumer"
-	mocks "github.com/diegodesousas/go-rabbitmq/mocks/consumer"
+	"github.com/diegodesousas/go-rabbitmq/mocks/consumer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

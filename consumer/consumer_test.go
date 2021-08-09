@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	mocks "github.com/diegodesousas/go-rabbitmq/mocks/connection"
+	"github.com/diegodesousas/go-rabbitmq/mocks/connection"
 	amqpmocks "github.com/diegodesousas/go-rabbitmq/mocks/github.com/streadway/amqp"
 
 	"github.com/streadway/amqp"
