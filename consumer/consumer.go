@@ -129,7 +129,7 @@ func (c *DefaultConsumer) dispatcher(ctx context.Context, delivery amqp.Delivery
 
 func (c *DefaultConsumer) Shutdown(ctx context.Context) error {
 	err := c.channel.Cancel(c.name, false)
-	if err != nil && err != amqp.ErrClosed {
+	if err != nil {
 		log.Print(err) // TODO: this error must be logged
 	}
 
