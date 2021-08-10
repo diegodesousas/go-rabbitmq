@@ -152,12 +152,10 @@ func (c *DefaultConsumer) Shutdown(ctx context.Context) error {
 		}
 	}()
 
-	for {
-		select {
-		case <-done:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
