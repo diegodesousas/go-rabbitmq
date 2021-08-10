@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	DefaultQtyRoutines = 1
+	DefaultRoutines = 1
+	DefaultPrefetch = 10
 )
 
 type Consumer interface {
@@ -26,7 +27,8 @@ type DefaultConsumer struct {
 	handler      MessageHandler
 	queue        string
 	name         string
-	qtyRoutines  int
+	routines     int
+	prefetch     int
 	autoAck      bool
 	exclusive    bool
 	noLocal      bool
@@ -38,7 +40,8 @@ type DefaultConsumer struct {
 
 func New(options ...Option) (*DefaultConsumer, error) {
 	consumer := &DefaultConsumer{
-		qtyRoutines: DefaultQtyRoutines,
+		routines: DefaultRoutines,
+		prefetch: DefaultPrefetch,
 	}
 
 	for _, opt := range options {
@@ -62,10 +65,10 @@ func New(options ...Option) (*DefaultConsumer, error) {
 	}
 
 	consumer.name = fmt.Sprintf("%s:%s:%s", "go-rabbitmq", consumer.queue, uuid.New())
-	consumer.routinesGate = make(chan struct{}, consumer.qtyRoutines)
+	consumer.routinesGate = make(chan struct{}, consumer.routines)
 
 	var err error
-	consumer.channel, err = consumer.conn.Channel(consumer.qtyRoutines)
+	consumer.channel, err = consumer.conn.Channel(consumer.prefetch)
 	if err != nil {
 		return nil, err
 	}

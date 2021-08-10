@@ -14,9 +14,16 @@ func WithQueue(name string) Option {
 	}
 }
 
-func WithQtyRoutines(qty int) Option {
+func WithRoutines(qty int) Option {
 	return func(consumer *DefaultConsumer) *DefaultConsumer {
-		consumer.qtyRoutines = qty
+		consumer.routines = qty
+		return consumer
+	}
+}
+
+func WithPrefetch(qty int) Option {
+	return func(consumer *DefaultConsumer) *DefaultConsumer {
+		consumer.prefetch = qty
 		return consumer
 	}
 }

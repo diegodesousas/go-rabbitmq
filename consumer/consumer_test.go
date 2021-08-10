@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/diegodesousas/go-rabbitmq/mocks/connection"
+	mocks "github.com/diegodesousas/go-rabbitmq/mocks/connection"
 	amqpmocks "github.com/diegodesousas/go-rabbitmq/mocks/github.com/streadway/amqp"
 
 	"github.com/streadway/amqp"
@@ -41,7 +41,7 @@ func TestNewConsumer(t *testing.T) {
 		assertions.Nil(err)
 		assertions.Equal(expectedQueueName, consumer.queue)
 		assertions.NotNil(consumer.handler)
-		assertions.Equal(DefaultQtyRoutines, consumer.qtyRoutines)
+		assertions.Equal(DefaultRoutines, consumer.routines)
 		assertions.Equal(false, consumer.autoAck)
 		assertions.Equal(false, consumer.exclusive)
 		assertions.Equal(false, consumer.noWait)
@@ -65,7 +65,8 @@ func TestNewConsumer(t *testing.T) {
 		}
 
 		expectedQueueName := "test"
-		expectedQtyRoutines := 5
+		expectedRoutines := 5
+		expectedPrefetch := 5
 		expectedTable := amqp.Table{
 			"test": 1,
 		}
@@ -74,22 +75,24 @@ func TestNewConsumer(t *testing.T) {
 			WithQueue(expectedQueueName),
 			WithHandler(testHandler),
 			WithConnection(conn),
-			WithQtyRoutines(expectedQtyRoutines),
+			WithRoutines(expectedRoutines),
 			WithAutoAck(true),
 			WithExclusive(true),
 			WithNoWait(true),
 			WithNoLocal(true),
 			WithArgs(expectedTable),
+			WithPrefetch(expectedPrefetch),
 		)
 
 		assertions.Nil(err)
 		assertions.Equal(expectedQueueName, consumer.queue)
-		assertions.Equal(expectedQtyRoutines, consumer.qtyRoutines)
+		assertions.Equal(expectedRoutines, consumer.routines)
 		assertions.Equal(true, consumer.autoAck)
 		assertions.Equal(true, consumer.exclusive)
 		assertions.Equal(true, consumer.noWait)
 		assertions.Equal(true, consumer.noLocal)
 		assertions.Equal(expectedTable, consumer.args)
+		assertions.Equal(expectedPrefetch, consumer.prefetch)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
 		conn.AssertNumberOfCalls(t, "Channel", 1)
 	})
@@ -281,7 +284,7 @@ func TestConsumer_Consume(t *testing.T) {
 			WithQueue("test"),
 			WithHandler(testHandler),
 			WithConnection(conn),
-			WithQtyRoutines(len(expectedMessages)), // to force concurrency
+			WithRoutines(len(expectedMessages)), // to force concurrency
 		)
 		assertions.Nil(err)
 
@@ -361,7 +364,7 @@ func TestConsumer_Consume(t *testing.T) {
 			WithQueue("test"),
 			WithHandler(testHandler),
 			WithConnection(conn),
-			WithQtyRoutines(len(expectedMessages)), // to force concurrency
+			WithRoutines(len(expectedMessages)), // to force concurrency
 		)
 		assertions.Nil(err)
 
@@ -565,7 +568,7 @@ func TestConsumer_Shutdown(t *testing.T) {
 			WithQueue(expectedQueueName),
 			WithHandler(expectedHandler),
 			WithConnection(conn),
-			WithQtyRoutines(len(deliveryList)),
+			WithRoutines(len(deliveryList)),
 		)
 		assertions.Nil(err)
 
