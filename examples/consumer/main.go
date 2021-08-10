@@ -74,8 +74,8 @@ func main() {
 	helloZorldConsumer, err := consumer.New(
 		consumer.WithConnection(conn),
 		consumer.WithQueue("hello.zorld"),
-		consumer.WithRoutines(5),
-		consumer.WithPrefetch(5),
+		consumer.WithRoutines(2),
+		consumer.WithPrefetch(10),
 		consumer.WithHandler(HelloHandler),
 	)
 	if err != nil {

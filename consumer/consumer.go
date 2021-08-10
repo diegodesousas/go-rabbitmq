@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
 	"github.com/google/uuid"
@@ -35,7 +34,6 @@ type DefaultConsumer struct {
 	noWait       bool
 	args         amqp.Table
 	routinesGate chan struct{}
-	messageFlow  sync.WaitGroup
 }
 
 func New(options ...Option) (*DefaultConsumer, error) {
@@ -90,13 +88,10 @@ func (c *DefaultConsumer) Consume(ctx context.Context) error {
 		return err
 	}
 
-	c.messageFlow.Add(1)
 	go func() {
 		for msg := range msgs {
 			c.dispatcher(ctx, msg, c.handler)
 		}
-
-		c.messageFlow.Done()
 	}()
 
 	return nil
@@ -139,8 +134,6 @@ func (c *DefaultConsumer) Shutdown(ctx context.Context) error {
 	}
 
 	defer c.channel.Close() // TODO: this error must be logged
-
-	c.messageFlow.Wait()
 
 	done := make(chan struct{}, 1)
 
