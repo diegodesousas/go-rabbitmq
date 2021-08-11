@@ -5,74 +5,64 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type Option func(consumer *DefaultConsumer) *DefaultConsumer
+type Option func(consumer *DefaultConsumer)
 
 func WithQueue(name string) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.queue = name
-		return consumer
 	}
 }
 
 func WithRoutines(qty int) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.routines = qty
-		return consumer
 	}
 }
 
 func WithPrefetch(qty int) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.prefetch = qty
-		return consumer
 	}
 }
 
 func WithConnection(connection connection.Connection) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.conn = connection
-		return consumer
 	}
 }
 
 func WithHandler(handler MessageHandler) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.handler = handler
-		return consumer
 	}
 }
 
 func WithAutoAck(autoAck bool) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.autoAck = autoAck
-		return consumer
 	}
 }
 
 func WithExclusive(exclusive bool) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.exclusive = exclusive
-		return consumer
 	}
 }
 
 func WithNoLocal(noLocal bool) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.noLocal = noLocal
-		return consumer
 	}
 }
 
 func WithNoWait(noWait bool) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.noWait = noWait
-		return consumer
 	}
 }
 
 func WithArgs(args amqp.Table) Option {
-	return func(consumer *DefaultConsumer) *DefaultConsumer {
+	return func(consumer *DefaultConsumer) {
 		consumer.args = args
-		return consumer
 	}
 }

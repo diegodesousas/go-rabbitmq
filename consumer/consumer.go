@@ -43,7 +43,7 @@ func New(options ...Option) (*DefaultConsumer, error) {
 	}
 
 	for _, opt := range options {
-		consumer = opt(consumer)
+		opt(consumer)
 	}
 
 	if consumer.handler == nil {
