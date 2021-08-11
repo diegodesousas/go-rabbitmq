@@ -37,8 +37,8 @@ func (c Config) String() string {
 }
 
 type DefaultConnection struct {
-	config Config
 	*amqp.Connection
+	config Config
 }
 
 func (d DefaultConnection) Reconnect() (Connection, error) {
@@ -55,5 +55,5 @@ func Dial(config Config) (Connection, error) {
 		return nil, err
 	}
 
-	return DefaultConnection{config, conn}, nil
+	return DefaultConnection{conn, config}, nil
 }
