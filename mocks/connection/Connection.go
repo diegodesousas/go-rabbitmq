@@ -13,13 +13,13 @@ type Connection struct {
 	mock.Mock
 }
 
-// Channel provides a mock function with given fields: prefetch
-func (_m *Connection) Channel(prefetch int) (connection.Channel, error) {
-	ret := _m.Called(prefetch)
+// Channel provides a mock function with given fields:
+func (_m *Connection) Channel() (connection.Channel, error) {
+	ret := _m.Called()
 
 	var r0 connection.Channel
-	if rf, ok := ret.Get(0).(func(int) connection.Channel); ok {
-		r0 = rf(prefetch)
+	if rf, ok := ret.Get(0).(func() connection.Channel); ok {
+		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(connection.Channel)
@@ -27,8 +27,8 @@ func (_m *Connection) Channel(prefetch int) (connection.Channel, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(int) error); ok {
-		r1 = rf(prefetch)
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -80,7 +80,7 @@ func (_m *Connection) NotifyClose(receiver chan *amqp.Error) chan *amqp.Error {
 	return r0
 }
 
-// TryReconnect provides a mock function with given fields:
+// Reconnect provides a mock function with given fields:
 func (_m *Connection) Reconnect() (connection.Connection, error) {
 	ret := _m.Called()
 

@@ -107,3 +107,17 @@ func (_m *Channel) Publish(exchange string, key string, mandatory bool, immediat
 
 	return r0
 }
+
+// Qos provides a mock function with given fields: prefetch, prefetchSize, global
+func (_m *Channel) Qos(prefetch int, prefetchSize int, global bool) error {
+	ret := _m.Called(prefetch, prefetchSize, global)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int, int, bool) error); ok {
+		r0 = rf(prefetch, prefetchSize, global)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}

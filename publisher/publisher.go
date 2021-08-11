@@ -55,7 +55,7 @@ func (p Publisher) Publish(message Message) error {
 		return err
 	}
 
-	channel, err := conn.Channel(0)
+	channel, err := conn.Channel()
 	if err != nil {
 		return err
 	}

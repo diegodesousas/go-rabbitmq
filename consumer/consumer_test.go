@@ -253,6 +253,7 @@ func TestConsumer_Consume(t *testing.T) {
 		channel.On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(messages, nil)
 		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
 		channel.On("Close").Return(nil)
+		channel.On("Qos", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
@@ -306,7 +307,13 @@ func TestConsumer_Consume(t *testing.T) {
 		channel.AssertNumberOfCalls(t, "Consume", 1)
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
 		conn.AssertNumberOfCalls(t, "Channel", 1)
+
 		acknowledger.AssertNumberOfCalls(t, "Ack", 1)
+
+		channel.AssertNumberOfCalls(t, "Consume", 1)
+		channel.AssertNumberOfCalls(t, "Cancel", 1)
+		channel.AssertNumberOfCalls(t, "Close", 1)
+		channel.AssertNumberOfCalls(t, "Qos", 1)
 	})
 
 	t.Run("should consume message successfully with error on handler", func(t *testing.T) {
@@ -333,6 +340,7 @@ func TestConsumer_Consume(t *testing.T) {
 		channel.On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(messages, nil)
 		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
 		channel.On("Close").Return(nil)
+		channel.On("Qos", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
@@ -379,14 +387,21 @@ func TestConsumer_Consume(t *testing.T) {
 		err = consumer.Shutdown(ctx)
 		assertions.Nil(err)
 
-		channel.AssertNumberOfCalls(t, "Consume", 1)
-		conn.AssertNumberOfCalls(t, "IsClosed", 1)
-		conn.AssertNumberOfCalls(t, "Channel", 1)
-		acknowledger.AssertNumberOfCalls(t, "Reject", 1)
-
 		assertions.Len(expectedHandlerCalls, len(expectedMessages))
 		assertions.Contains(expectedHandlerCalls, m1)
 		assertions.Contains(expectedHandlerCalls, m2)
+
+		channel.AssertNumberOfCalls(t, "Consume", 1)
+		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
+
+		acknowledger.AssertNumberOfCalls(t, "Reject", 1)
+
+		channel.AssertNumberOfCalls(t, "Consume", 1)
+		channel.AssertNumberOfCalls(t, "Cancel", 1)
+		channel.AssertNumberOfCalls(t, "Close", 1)
+		channel.AssertNumberOfCalls(t, "Qos", 1)
+
 	})
 
 	t.Run("should return error when call consume method of channel", func(t *testing.T) {
@@ -398,6 +413,9 @@ func TestConsumer_Consume(t *testing.T) {
 		channel.
 			On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 			Return(nil, expectedErr)
+		channel.
+			On("Qos", mock.Anything, mock.Anything, mock.Anything).
+			Return(nil)
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
@@ -429,7 +447,51 @@ func TestConsumer_Consume(t *testing.T) {
 
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
 		conn.AssertNumberOfCalls(t, "Channel", 1)
+
 		channel.AssertNumberOfCalls(t, "Consume", 1)
+		channel.AssertNumberOfCalls(t, "Qos", 1)
+	})
+
+	t.Run("should return error when call qos method of channel", func(t *testing.T) {
+		assertions := assert.New(t)
+
+		expectedErr := errors.New("error on call of method consume")
+
+		channel := new(mocks.Channel)
+		channel.On("Qos", mock.Anything, mock.Anything, mock.Anything).Return(expectedErr)
+
+		conn := new(mocks.Connection)
+		conn.On("IsClosed").Return(false)
+		conn.On("Channel", mock.Anything).Return(channel, nil)
+
+		var expectedCalls []string
+		testHandler := func(ctx context.Context, message Message) *Error {
+			var body string
+			err := message.Unmarshal(&body)
+			if err != nil {
+				return WrapErrConsumer(err)
+			}
+
+			expectedCalls = append(expectedCalls, body)
+			return nil
+		}
+
+		consumer, err := New(
+			WithQueue("test"),
+			WithHandler(testHandler),
+			WithConnection(conn),
+		)
+		assertions.Nil(err)
+
+		err = consumer.Consume(context.Background())
+		assertions.NotNil(err)
+		assertions.Equal(expectedErr, err)
+		assertions.Len(expectedCalls, 0)
+
+		conn.AssertNumberOfCalls(t, "IsClosed", 1)
+		conn.AssertNumberOfCalls(t, "Channel", 1)
+		channel.AssertNumberOfCalls(t, "Consume", 0)
+		channel.AssertNumberOfCalls(t, "Qos", 1)
 	})
 }
 
@@ -552,6 +614,7 @@ func TestConsumer_Shutdown(t *testing.T) {
 		channel.On("Cancel", mock.Anything, mock.Anything).Return(nil)
 		channel.On("Close").Return(nil)
 		channel.On("Consume", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(deliveries, nil)
+		channel.On("Qos", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		conn := new(mocks.Connection)
 		conn.On("IsClosed").Return(false)
@@ -589,6 +652,7 @@ func TestConsumer_Shutdown(t *testing.T) {
 
 		channel.AssertNumberOfCalls(t, "Cancel", 1)
 		channel.AssertNumberOfCalls(t, "Close", 1)
+		channel.AssertNumberOfCalls(t, "Qos", 1)
 
 		conn.AssertNumberOfCalls(t, "IsClosed", 1)
 		conn.AssertNumberOfCalls(t, "Channel", 1)

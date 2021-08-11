@@ -66,7 +66,7 @@ func New(options ...Option) (*DefaultConsumer, error) {
 	consumer.routinesGate = make(chan struct{}, consumer.routines)
 
 	var err error
-	consumer.channel, err = consumer.conn.Channel(consumer.prefetch)
+	consumer.channel, err = consumer.conn.Channel()
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +75,10 @@ func New(options ...Option) (*DefaultConsumer, error) {
 }
 
 func (c *DefaultConsumer) Consume(ctx context.Context) error {
+	if err := c.channel.Qos(c.prefetch, 0, false); err != nil {
+		return err
+	}
+
 	msgs, err := c.channel.Consume(
 		c.queue,
 		c.name,

@@ -8,7 +8,7 @@ import (
 
 type Connection interface {
 	IsClosed() bool
-	Channel(prefetch int) (Channel, error)
+	Channel() (Channel, error)
 	Close() error
 	NotifyClose(receiver chan *amqp.Error) chan *amqp.Error
 	Reconnect() (Connection, error)
@@ -20,6 +20,7 @@ type Channel interface {
 	NotifyPublish(confirm chan amqp.Confirmation) chan amqp.Confirmation
 	Publish(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
 	Cancel(consumer string, noWait bool) error
+	Qos(prefetch int, prefetchSize int, global bool) error
 	Close() error
 }
 
@@ -44,17 +45,8 @@ func (d DefaultConnection) Reconnect() (Connection, error) {
 	return Dial(d.config)
 }
 
-func (d DefaultConnection) Channel(prefetch int) (Channel, error) {
-	channel, err := d.Connection.Channel()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := channel.Qos(prefetch, 0, false); err != nil {
-		return nil, err
-	}
-
-	return Channel(channel), nil
+func (d DefaultConnection) Channel() (Channel, error) {
+	return d.Connection.Channel()
 }
 
 func Dial(config Config) (Connection, error) {
