@@ -1,6 +1,6 @@
 module github.com/diegodesousas/go-rabbitmq
 
-go 1.15
+go 1.16
 
 require (
 	github.com/google/uuid v1.3.0
