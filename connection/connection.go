@@ -11,6 +11,7 @@ type Connection interface {
 	Channel(prefetch int) (Channel, error)
 	Close() error
 	NotifyClose(receiver chan *amqp.Error) chan *amqp.Error
+	Reconnect() (Connection, error)
 }
 
 type Channel interface {
@@ -35,7 +36,12 @@ func (c Config) String() string {
 }
 
 type DefaultConnection struct {
+	config Config
 	*amqp.Connection
+}
+
+func (d DefaultConnection) Reconnect() (Connection, error) {
+	return Dial(d.config)
 }
 
 func (d DefaultConnection) Channel(prefetch int) (Channel, error) {
@@ -57,5 +63,5 @@ func Dial(config Config) (Connection, error) {
 		return nil, err
 	}
 
-	return DefaultConnection{conn}, nil
+	return DefaultConnection{config, conn}, nil
 }

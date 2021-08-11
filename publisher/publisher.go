@@ -40,15 +40,26 @@ func New(conn connection.Connection) Publisher {
 }
 
 func (p Publisher) Publish(message Message) error {
+	if p.conn.IsClosed() {
+		var err error
+		p.conn, err = p.conn.Reconnect()
+		if err != nil {
+			return err
+		}
+	}
+
+	conn := p.conn
+
 	content, err := json.Marshal(message.Content)
 	if err != nil {
 		return err
 	}
 
-	channel, err := p.conn.Channel(0)
+	channel, err := conn.Channel(0)
 	if err != nil {
 		return err
 	}
+	defer channel.Close()
 
 	if err := channel.Confirm(false); err != nil {
 		return err

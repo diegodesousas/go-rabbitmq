@@ -79,3 +79,26 @@ func (_m *Connection) NotifyClose(receiver chan *amqp.Error) chan *amqp.Error {
 
 	return r0
 }
+
+// TryReconnect provides a mock function with given fields:
+func (_m *Connection) Reconnect() (connection.Connection, error) {
+	ret := _m.Called()
+
+	var r0 connection.Connection
+	if rf, ok := ret.Get(0).(func() connection.Connection); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(connection.Connection)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}

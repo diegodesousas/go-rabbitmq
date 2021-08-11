@@ -68,13 +68,15 @@ func main() {
 	}
 
 	for i := 0; i < 500; i++ {
+		time.Sleep(1 * time.Second)
+
 		err = pub.Publish(publisher.Message{
 			Exchange:   "hello",
 			RoutingKey: "hello.world",
 			Content:    content,
 		})
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 
 		log.Println("message send")
@@ -85,7 +87,7 @@ func main() {
 			Content:    content,
 		})
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 
 		log.Println("message send")
