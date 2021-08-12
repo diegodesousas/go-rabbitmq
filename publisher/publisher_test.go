@@ -27,6 +27,7 @@ func TestPublisher_Publish(t *testing.T) {
 		conn := new(mocks.Connection)
 		conn.On("Channel", mock.Anything).Return(channel, nil)
 		conn.On("IsClosed").Return(false)
+		conn.On("Close").Return(nil)
 
 		publisher := New(conn)
 
@@ -42,7 +43,9 @@ func TestPublisher_Publish(t *testing.T) {
 		}
 
 		err := publisher.Publish(message)
+		assertions.Nil(err)
 
+		err = publisher.Shutdown()
 		assertions.Nil(err)
 
 		conn.AssertNumberOfCalls(t, "Channel", 1)

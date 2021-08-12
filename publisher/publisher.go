@@ -29,17 +29,22 @@ type Message struct {
 	AppId           string
 }
 
-type Publisher struct {
+type DefaultPublisher struct {
 	conn connection.Connection
 }
 
-func New(conn connection.Connection) Publisher {
-	return Publisher{
+type Publisher interface {
+	Publish(message Message) error
+	Shutdown() error
+}
+
+func New(conn connection.Connection) DefaultPublisher {
+	return DefaultPublisher{
 		conn: conn,
 	}
 }
 
-func (p Publisher) Publish(message Message) error {
+func (p DefaultPublisher) Publish(message Message) error {
 	if p.conn.IsClosed() {
 		var err error
 		p.conn, err = p.conn.Reconnect()
@@ -98,4 +103,8 @@ func (p Publisher) Publish(message Message) error {
 	}
 
 	return nil
+}
+
+func (p DefaultPublisher) Shutdown() error {
+	return p.conn.Close()
 }
