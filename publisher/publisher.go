@@ -3,6 +3,7 @@ package publisher
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/diegodesousas/go-rabbitmq/connection"
@@ -30,7 +31,8 @@ type Message struct {
 }
 
 type DefaultPublisher struct {
-	conn connection.Connection
+	conn  connection.Connection
+	mutex sync.Mutex
 }
 
 type Publisher interface {
@@ -38,22 +40,17 @@ type Publisher interface {
 	Shutdown() error
 }
 
-func New(conn connection.Connection) DefaultPublisher {
-	return DefaultPublisher{
+func New(conn connection.Connection) *DefaultPublisher {
+	return &DefaultPublisher{
 		conn: conn,
 	}
 }
 
 func (p *DefaultPublisher) Publish(message Message) error {
-	if p.conn.IsClosed() {
-		var err error
-		p.conn, err = p.conn.Reconnect()
-		if err != nil {
-			return err
-		}
+	conn, err := p.connection()
+	if err != nil {
+		return err
 	}
-
-	conn := p.conn
 
 	content, err := json.Marshal(message.Content)
 	if err != nil {
@@ -105,6 +102,21 @@ func (p *DefaultPublisher) Publish(message Message) error {
 	return nil
 }
 
-func (p DefaultPublisher) Shutdown() error {
+func (p *DefaultPublisher) Shutdown() error {
 	return p.conn.Close()
+}
+
+func (p *DefaultPublisher) connection() (connection.Connection, error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.conn.IsClosed() {
+		var err error
+		p.conn, err = p.conn.Reconnect()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return p.conn, nil
 }
