@@ -44,7 +44,7 @@ func New(conn connection.Connection) DefaultPublisher {
 	}
 }
 
-func (p DefaultPublisher) Publish(message Message) error {
+func (p *DefaultPublisher) Publish(message Message) error {
 	if p.conn.IsClosed() {
 		var err error
 		p.conn, err = p.conn.Reconnect()
